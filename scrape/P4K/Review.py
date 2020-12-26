@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import datetime, json
+import dateutil.parser
 
 
 def sf(s):
@@ -15,7 +16,8 @@ class Review(object):
 		Class representing reviews
 	"""
 
-	def __init__(self, html):
+	def __init__(self, html, url):
+		self.url = url
 		self.html = html
 		self.soup = BeautifulSoup(html, "lxml")
 
@@ -84,11 +86,10 @@ class Review(object):
 				label = el
 			))
 
-		for el in self.years_list:
-			data['years'].append(dict(
-				reviewid = self.reviewid,
-				year = el
-			))
+		data['years'] = dict(
+			reviewid = self.reviewid,
+			year = self.year
+		)
 
 		self.data = data
 		return data
@@ -96,24 +97,22 @@ class Review(object):
 	# below are various functions obtaining data from the soup
 	def _set_meta(self):
 		reviewid = self.soup.find("article")['id']
-		self.reviewid = int(reviewid.split('-')[-1])
-		url = self.soup.find("script").string
-		self.url = json.loads(url)['url']
+		self.reviewid = reviewid.split('-')[-1]
 
 	def _set_title(self):
-		album_title = self.soup.find("h1", { "class" : "review-title" })
+		album_title = self.soup.find("h1", { "class" : "single-album-tombstone__review-title" })
 		self.title = sf(album_title.get_text())
 
 	def _set_artist(self):
 		artist_list = self.soup.find("ul", { "class" : ["artist-links", "artist-list"] })
 		self.artist_list = [sf(li.get_text()) for li in  artist_list.findAll('li')]
-		self.artist_str = ', '.join(self.artist_list)
+		self.artist_str = b', '.join(self.artist_list).decode('utf-8')
 
 	def _set_author(self):
-		author = self.soup.find("a", { "class" : "display-name" }).get_text()
+		author = self.soup.find("a", { "class" : "authors-detail__display-name" }).get_text()
 		self.author = sf(author)
 
-		self.author_type = self.soup.find("span", { "class" : "title" })
+		self.author_type = self.soup.find("span", { "class" : "authors-detail__title" })
 		if self.author_type is not None:
 			self.author_type = sf(self.author_type.get_text())
 
@@ -123,7 +122,7 @@ class Review(object):
 		self.best_new_music = self.soup.find("p", { "class" : "bnm-txt" }) is not None
 
 	def _set_review_content(self):
-		review_content = self.soup.find("div", { "class" : "review-text" })
+		review_content = self.soup.find("div", { "class" : "review-detail__text" })
 		review_content = review_content.findAll('p')
 		review_content = [i.get_text() for i in review_content]
 		review_content = ''.join(review_content)
@@ -137,23 +136,19 @@ class Review(object):
 			self.genre_list = [None]
 
 	def _set_record_label(self):
-		record_labels_list = self.soup.find("ul", { "class" : "label-list" })
-		self.record_labels_list =  [sf(li.get_text()) for li in record_labels_list.findAll('li')]
-		if not self.record_labels_list:
+		record_labels_list = self.soup.find("span", { "class" : "label-list" })
+		if record_labels_list:
+			self.record_labels_list =  [sf(li.get_text()) for li in record_labels_list.findAll('li')]
+		else:
 			self.record_labels_list = [None]
 
 	def _set_years(self):
-		years_list = self.soup.find("span", { "class" : "year" })
-		years_list = sf(years_list.get_text().strip())
-		if not years_list: 
-			years_list = [None]
-		else:
-			years_list = [int(y) for y in years_list.split('/')]
-		self.years_list = years_list
+		self.year = self.soup.find("span", { "class" : "single-album-tombstone__meta-year" }).text
+		self.year = self.year.replace(' • ', '')
 
 	def _set_pub_datetime(self):
-		dt = self.soup.find("span", { "class" : "pub-date" })['title']
-		self.pub_datetime = datetime.datetime.strptime(dt, "%a %b %d %Y %X GMT+0000 (%Z)")
+		dt = self.soup.find("time", { "class" : "pub-date" })['datetime']
+		self.pub_datetime = dateutil.parser.isoparse(dt)
 
 
 		

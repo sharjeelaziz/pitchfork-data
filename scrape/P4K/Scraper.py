@@ -34,7 +34,7 @@ class Scraper(object):
 		
 		# return false if request failed
 		if page.status_code != 200: 
-			print 'Failed page ' + str(pagenum) + '. Error: ' + str(page.status_code)
+			print('Failed page ' + str(pagenum) + '. Error: ' + str(page.status_code))
 			return False
 
 		# process reviews
@@ -43,7 +43,7 @@ class Scraper(object):
 
 		urls = []
 		for i in reviews:
-			album_link = i.find('a',{'class': 'album-link'}).attrs['href']
+			album_link = i.find('a',{'class': 'review__link'}).attrs['href']
 			urls.append( "http://pitchfork.com" + album_link)
 
 		return urls
@@ -62,7 +62,7 @@ class Scraper(object):
 
 		# return false if request failed
 		if page.status_code != 200: 
-			print 'Error ' + str(page.status_code) + 'on: ' + url 
+			print('Error ' + str(page.status_code) + 'on: ' + url) 
 			return False
 
 		return page.text

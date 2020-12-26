@@ -14,11 +14,11 @@ status_conn.execute('''CREATE TABLE reviews (page INTEGER, url TEXT, success TEX
 # configure storage of review data
 db_conn = sqlite3.connect('../pitchfork.db')
 db_cur = db_conn.cursor()
-execfile('init_db.py')
+exec(open('init_db.py').read())
 
 # iterate over pages
 scraper = P4K.Scraper()
-for pagenum in range(1, 1540):
+for pagenum in range(1, 1931):
 
 	# open up storage for the page
 	page_data = dict(
@@ -55,7 +55,7 @@ for pagenum in range(1, 1540):
 		if not review_html: continue
 
 		# process the html
-		review = P4K.Review(review_html)
+		review = P4K.Review(review_html, url)
 		data = review.compile()
 
 		# add fields to page data
@@ -67,7 +67,7 @@ for pagenum in range(1, 1540):
 	for k, v in page_data.items():
 		page_data[k].to_sql(k, db_conn, if_exists = 'append', index = False)
 
-	print 'Finished page: ' + str(pagenum)
+	print('Finished page: ' + str(pagenum))
 
 status_conn.close()
 db_conn.close()
